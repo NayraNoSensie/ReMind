@@ -144,7 +144,7 @@ app.delete('/api/v1/content/:id', userMiddleware, async (req, res) => {
 
     try {
         const content = await ContentModel.deleteMany({
-            contentId: contentId,,
+            contentId: contentId,
             //@ts-ignore
 
             userId: req.userId // Assuming userId is set by middleware});
