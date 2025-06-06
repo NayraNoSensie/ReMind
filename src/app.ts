@@ -1,4 +1,6 @@
 import express from 'express';
+import { z } from 'zod';
+
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
@@ -14,8 +16,23 @@ app.use(express.urlencoded({ extended: true }));
 
 //route for signup 
 app.post('/api/v1/signup' , async (req,res) =>{
-  const  username = req.body.username;
-   const  password = req.body.password;
+
+   
+  const  username = z.object({
+    username: z.string()
+    .email()
+    .min(3, 'Username must be at least 3 characters long')
+    .max(30)
+    .regex(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/, 'Username can only contain letters, numbers, and underscores'),
+  }).parse(req.body).username;
+
+   const  password = z.object({
+    password: z.string()
+    .min(6)
+    .max(20)
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character')
+    }).parse(req.body).password;
 
 try {
 
@@ -40,13 +57,27 @@ try {
 
 
 
-
-
 //route for signin 
 app.post('/api/v1/signin' , async (req,res) =>{
-    const  username = req.body.username;
-     const  password = req.body.password;
+   
+   const  username = z.object({
+    username: z.string()
+    .email()
+    .min(3, 'Username must be at least 3 characters long')
+    .max(30)
+    .regex(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/, 'Username can only contain letters, numbers, and underscores'),
+  }).parse(req.body).username;
+
+   const  password = z.object({
+    password: z.string()
+    .min(6)
+    .max(20)
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character')
+    }).parse(req.body).password;
     
+
+
      try {
         const user = await UserModel.findOne({
             username,

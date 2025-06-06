@@ -14,8 +14,8 @@ const UserSchema = new mongoose_2.Schema({
 const ConstentSchema = new mongoose_2.Schema({
     title: { type: String, required: true },
     link: { type: String, required: true },
-    tags: { type: mongoose_1.default.Schema.Types.Array, ref: 'Tag' },
-    userId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User' }
+    tags: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Tag' }],
+    userId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User', required: true }
 });
 exports.UserModel = mongoose_1.default.model('User', UserSchema);
 exports.ContentModel = mongoose_1.default.model('Content', ConstentSchema);
