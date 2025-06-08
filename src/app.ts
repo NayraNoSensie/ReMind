@@ -269,6 +269,7 @@ app.get('/api/v1/share/brain/:sharelink' ,async (req: Request, res: Response) =>
 
 const hash = req.params.sharelink;
 
+try{
 
 const Link = await LinkModel.findOne({
     hash: hash
@@ -289,6 +290,12 @@ const content = await ContentModel.find({
         _id: Link?.userId
         })
 
+    }catch(e){
+        
+        res.status(500).json({
+            message: 'Internal server error'
+        })
+    }
 })
 
 
