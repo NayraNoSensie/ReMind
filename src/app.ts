@@ -1,12 +1,21 @@
 import express from 'express';
-import { z } from 'zod';
+import { Request, Response, NextFunction } from "express";
+import { z } from 'zod'; //input validation
+
+// Extend Express Request type
+import './config/globalscope'; // to extend the express request type
+
 
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+//environment varibales
 import dotenv from 'dotenv';
 dotenv.config();
-import { ContentModel, UserModel } from './db';
-import { userMiddleware } from './middleware';
+import { ContentModel } from './dbSchema/contentModel'; // Importing the content model
+import { UserModel } from './dbSchema/userModel'; // Importing the user model
+import { LinkModel } from './dbSchema/linkModel'; // Importing the link model
+import { userMiddleware } from './middleware/middleware';
+import { RandomString } from './config/utils';
 
 const app = express();
 app.use(express.json());
@@ -14,7 +23,9 @@ app.use(express.urlencoded({ extended: true }));
 
 
 
-//route for signup 
+//route for signup  ================================================================================================================
+
+
 app.post('/api/v1/signup' , async (req,res) =>{
 
    
@@ -57,7 +68,11 @@ try {
 
 
 
-//route for signin 
+//route for signin ================================================================================================================
+
+
+
+
 app.post('/api/v1/signin' , async (req,res) =>{
    
    const  username = z.object({
@@ -113,7 +128,7 @@ app.post('/api/v1/signin' , async (req,res) =>{
 
 
 
-//content route to post the content     ===================================
+//content route to post the content     ===================================================================================================================================
 
 app.post ('/api/v1/content', userMiddleware, async (req, res) => {
     const title = req.body.title;
@@ -167,7 +182,7 @@ app.get('/api/v1/content', userMiddleware , async (req, res) => {
 
 
 
-//delete content route to delete the content               ===================================\\
+//delete content route to delete the content   ===============   ================================================================    ===================================\\
 
 
 app.delete('/api/v1/content/:id', userMiddleware, async (req, res) => {
@@ -204,10 +219,77 @@ app.delete('/api/v1/content/:id', userMiddleware, async (req, res) => {
 
 
 
+// cretaing a share brain content route  ================================================================================================================================
+
+
+app.post('/api/v1/share/brain', userMiddleware, async (req, res) => {
+     const share = req.body.share;
+
+     if(share) { 
+
+        const existingLink = await LinkModel.findOne({
+            userId: req.userId // 
+           
+        });
+        if (existingLink) {
+             res.status(200).json({
+                message: 'Share link already exists',
+                shareLink: `http://localhost:3000/api/v1/share/brain/${existingLink.hash}`
+            });
+
+        const hash = RandomString(10); // Generate a random hash for the share link
+        LinkModel.create({
+         userId: req.userId ,// Assuming userId is set by middleware
+            hash: hash 
+        })
+        res.json ({
+            message: 'Share brain content created successfully',
+            shareLink: `http://localhost:3000/api/v1/share/brain/${RandomString(10)}`
+        })
+     }
+    }
+     else{
+        LinkModel.deleteOne({
+            userId: req.userId
+        })
+        res.json({
+            message: 'share lnk is removed successfully'
+        })
+     }
+        
+})
 
 
 
 
+//when i shared my link to others , and it goes to link and it hits the backned and get my brain preview content ================================================================================================================================
+
+
+app.get('/api/v1/share/brain/:sharelink' ,async (req: Request, res: Response) => {
+
+const hash = req.params.sharelink;
+
+
+const Link = await LinkModel.findOne({
+    hash: hash
+});
+
+
+if (!Link) {
+     res.status(404).json({
+        message: 'Share link not found'
+    })
+}
+
+const content = await ContentModel.find({
+    userId: Link?.userId // Assuming userId is set by middleware
+    })
+
+    const user = await UserModel.findOne({
+        _id: Link?.userId
+        })
+
+})
 
 
 
