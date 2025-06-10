@@ -5,7 +5,7 @@ import { z } from 'zod'; //input validation
 // Extend Express Request type
 import './config/globalscope'; // to extend the express request type
 
-
+import cors from 'cors';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 //environment varibales
@@ -16,54 +16,91 @@ import { UserModel } from './dbSchema/userModel'; // Importing the user model
 import { LinkModel } from './dbSchema/linkModel'; // Importing the link model
 import { userMiddleware } from './middleware/middleware';
 import { RandomString } from './config/utils';
+import cookieParser from 'cookie-parser';
 
 const app = express();
+
+
+
+app.use(cors({
+  origin: "http://localhost:3009",
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  exposedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
+
+// Add this before your routes
+
 
 
 
 //route for signup  ================================================================================================================
 
 
-app.post('/api/v1/signup' , async (req,res) =>{
+app.post('/api/v1/signup',  async (req, res) => {
+  try {
+    const name = z.object({
+      name: z.string()
+        .min(3, 'Name must be at least 3 characters long')
+        .max(30)
+        .regex(/^[a-zA-Z]/, 'Name can only contain letters'),
+    }).parse(req.body).name;
 
-   
-  const  username = z.object({
-    username: z.string()
-    .email()
-    .min(3, 'Username must be at least 3 characters long')
-    .max(30)
-    .regex(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/, 'Username can only contain letters, numbers, and underscores'),
-  }).parse(req.body).username;
+    const email = z.object({
+      email: z.string()
+        .email()
+        .min(3, 'Email must be at least 3 characters long')
+        .max(30)
+        .regex(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/, 'Invalid email format'),
+    }).parse(req.body).email;
 
-   const  password = z.object({
-    password: z.string()
-    .min(6)
-    .max(20)
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character')
+    const password = z.object({
+      password: z.string()
+        .min(6)
+        .max(20)
+        .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+        .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character'),
     }).parse(req.body).password;
 
-try {
-
-   await UserModel.create({
-    username,
-    password
-   })
-
-  res.status(200).json({
-    message: 'User created successfully'
+    //  Check if user already exists
+   //checking is email already exist or not 
+  const checkEmail =await UserModel.findOne({
+    email: email
   })
-    
-} catch (error) {
-    res.status(403).json({
-        message: 'User already exist or there is some ohter issue'
-    })
-    
-}
+  if(checkEmail){
+     res.status(409).json({ message: 'User with this email already exists' });
+    return;
+  }
 
-})
+    // ✅ Create new user
+    await UserModel.create({ 
+        name : name, 
+        email : email,
+         password : password  });
+
+     res.status(201).json({ message: 'User created successfully' });
+
+     return;
+
+  } catch(err: unknown){
+    if (err instanceof Error) {
+      console.log("Something went wrong while receving data", err.message);
+    } else {
+      console.log("Something went wrong while receving data", err);
+    }
+    res.status(500).send({
+      message : "Something went wrong while receving data"
+    })
+    return;
+  }
+});
+
+
+
 
 
 
@@ -75,13 +112,12 @@ try {
 
 app.post('/api/v1/signin' , async (req,res) =>{
    
-   const  username = z.object({
-    username: z.string()
-    .email()
-    .min(3, 'Username must be at least 3 characters long')
+   const  email = z.object({
+    email: z.string()
+    .min(3, 'email must be at least 3 characters long')
     .max(30)
-    .regex(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/, 'Username can only contain letters, numbers, and underscores'),
-  }).parse(req.body).username;
+    .regex(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/, 'email can only contain letters, numbers, and underscores'),
+  }).parse(req.body).email;
 
    const  password = z.object({
     password: z.string()
@@ -95,18 +131,20 @@ app.post('/api/v1/signin' , async (req,res) =>{
 
      try {
         const user = await UserModel.findOne({
-            username,
+            email,
             password
         })
     
         if(user){
             const token = jwt.sign({
                 id: user._id
-            }, process.env.JWT_SECRET!)
+            }, process.env.JWT_SECRET! , { expiresIn: '1h' });
 
             res.status(200).json({
                
-                token: token
+                token: token,
+                userId: user._id // Adding userId to response
+                
             })
             
         }else{
@@ -131,17 +169,26 @@ app.post('/api/v1/signin' , async (req,res) =>{
 //content route to post the content     ===================================================================================================================================
 
 app.post ('/api/v1/content', userMiddleware, async (req, res) => {
+    const type = req.body.type;
     const title = req.body.title;
     const link = req.body.link;
+    const description = req.body.description;
+    const tags = req.body.tags;
+
 
 
     ContentModel.create({
-        title,
-        link,
+        type  : type,
+        title : title,
+         link : link , 
+        description : description,
+        tags : tags,
+
+
         
         //@ts-ignore
         userId: req.userId ,// Assuming userId is set by middleware
-        tags : []
+        
     })
 
     res.status(200).json({
@@ -162,14 +209,19 @@ app.post ('/api/v1/content', userMiddleware, async (req, res) => {
 
 app.get('/api/v1/content', userMiddleware , async (req, res) => {
     //@ts-ignore
+    /* `const userId = req.userId;` is extracting the `userId` from the `req` object. In this code
+    snippet, it is assumed that the `userId` is set by middleware before reaching the route handler.
+    This extracted `userId` can then be used within the route handler to perform operations specific
+    to the user associated with that `userId`, such as fetching content belonging to that user or
+    performing user-specific actions. */
     const userId = req.userId; // Assuming userId is set by middleware
    try {
      const contents = await ContentModel.find({ 
          userId : userId
-      }).populate("userId", "username");
+      })
  
    res.json({
-            contents
+            contents : contents
      })
    } catch (error) {
          res.status(500).json({
@@ -184,18 +236,17 @@ app.get('/api/v1/content', userMiddleware , async (req, res) => {
 
 //delete content route to delete the content   ===============   ================================================================    ===================================\\
 
-
 app.delete('/api/v1/content/:id', userMiddleware, async (req, res) => {
-    const contentId = req.body.contentId;
+    const contentId = req.params.id; // Get ID from URL parameters instead of body
 
     try {
-        const content = await ContentModel.deleteMany({
-            contentId: contentId,
+        const content = await ContentModel.deleteOne({
+            _id: contentId,
             //@ts-ignore
+            userId: req.userId
+        });
 
-            userId: req.userId // Assuming userId is set by middleware});
-        })
-        if (content) {
+        if (content.deletedCount > 0) {
             res.status(200).json({
                 message: 'Content deleted successfully'
             });
@@ -205,13 +256,14 @@ app.delete('/api/v1/content/:id', userMiddleware, async (req, res) => {
             });
         }
     } catch (error) {
+        console.error('Delete error:', error);
         res.status(500).json({
             message: 'Internal server error'
         });
     }
+});
 
 
-})
 
 
 
@@ -233,8 +285,7 @@ app.post('/api/v1/share/brain', userMiddleware, async (req, res) => {
         });
         if (existingLink) {
              res.status(200).json({
-                message: 'Share link already exists',
-                shareLink: `http://localhost:3000/api/v1/share/brain/${existingLink.hash}`
+               hash: existingLink.hash
             });
 
         const hash = RandomString(10); // Generate a random hash for the share link
@@ -243,8 +294,7 @@ app.post('/api/v1/share/brain', userMiddleware, async (req, res) => {
             hash: hash 
         })
         res.json ({
-            message: 'Share brain content created successfully',
-            shareLink: `http://localhost:3000/api/v1/share/brain/${RandomString(10)}`
+            hash : hash
         })
      }
     }
@@ -315,8 +365,8 @@ async function connect() {
     await mongoose.connect(uri); // Remove the quotes
     console.log('Connected to db');
 
-    app.listen(3000, () => {
-        console.log('Server is running on port 3000');}
+    app.listen(8080, () => {
+        console.log('Server is running on port 8080');}
     );
 
 }

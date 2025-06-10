@@ -1,1 +1,1 @@
-{"root":["./src/app.ts","./src/db.ts","./src/middleware.ts"],"version":"5.8.3"}
+{"root":["./src/app.ts","./src/config/globalscope.ts","./src/config/utils.ts","./src/dbschema/contentmodel.ts","./src/dbschema/linkmodel.ts","./src/dbschema/usermodel.ts","./src/middleware/middleware.ts"],"version":"5.8.3"}

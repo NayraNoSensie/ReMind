@@ -7,7 +7,7 @@ const ConstentSchema = new Schema({
     type : { type: String, enum: ['Document', 'Youtube', 'Tweet', 'Links'], required: true },
     link : { type: String, required: true },
     description : { type: String, required: true }, 
-    tags : [ { type: mongoose.Schema.Types.ObjectId, ref: 'Tag' } ],
+    tags :  [{ type: String, required: true }],
     userId : { type: mongoose.Schema.Types.ObjectId , ref : 'User'  , required: true }
 
 })
