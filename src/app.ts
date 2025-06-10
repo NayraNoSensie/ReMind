@@ -20,10 +20,8 @@ import cookieParser from 'cookie-parser';
 
 const app = express();
 
-
-
 app.use(cors({
-  origin: "http://localhost:3009",
+  origin: ["http://localhost:3009", "https://re-mind-eosin.vercel.app"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -35,11 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Add this before your routes
 
-
-
-
 //route for signup  ================================================================================================================
-
 
 app.post('/api/v1/signup',  async (req, res) => {
   try {
@@ -99,16 +93,7 @@ app.post('/api/v1/signup',  async (req, res) => {
   }
 });
 
-
-
-
-
-
-
 //route for signin ================================================================================================================
-
-
-
 
 app.post('/api/v1/signin' , async (req,res) =>{
    
@@ -161,11 +146,6 @@ app.post('/api/v1/signin' , async (req,res) =>{
 
 })
 
-
-
-
-
-
 //content route to post the content     ===================================================================================================================================
 
 app.post ('/api/v1/content', userMiddleware, async (req, res) => {
@@ -197,14 +177,6 @@ app.post ('/api/v1/content', userMiddleware, async (req, res) => {
 
 })
 
-
-
-
-
-
-
-
-
 //content route to get the content               ===================================
 
 app.get('/api/v1/content', userMiddleware , async (req, res) => {
@@ -231,8 +203,6 @@ app.get('/api/v1/content', userMiddleware , async (req, res) => {
    }
    
 })
-
-
 
 //delete content route to delete the content   ===============   ================================================================    ===================================\\
 
@@ -263,16 +233,7 @@ app.delete('/api/v1/content/:id', userMiddleware, async (req, res) => {
     }
 });
 
-
-
-
-
-
-
-
-
 // cretaing a share brain content route  ================================================================================================================================
-
 
 app.post('/api/v1/share/brain', userMiddleware, async (req, res) => {
      const share = req.body.share;
@@ -309,11 +270,7 @@ app.post('/api/v1/share/brain', userMiddleware, async (req, res) => {
         
 })
 
-
-
-
 //when i shared my link to others , and it goes to link and it hits the backned and get my brain preview content ================================================================================================================================
-
 
 app.get('/api/v1/share/brain/:sharelink' ,async (req: Request, res: Response) => {
 
@@ -348,15 +305,10 @@ const content = await ContentModel.find({
     }
 })
 
-
-
-
-
-
-
-
-
-
+// Add root route handler
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to Remind API' });
+});
 
 //function to connect he database and start the server 
 async function connect() {
@@ -372,3 +324,22 @@ async function connect() {
 }
 //startiing rthe db and node server 
 connect();
+
+// Update the server start section at the bottom of the file
+const PORT = process.env.PORT ;
+
+async function startServer() {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI!);
+    console.log('Connected to MongoDB');
+    
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to connect to MongoDB:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
