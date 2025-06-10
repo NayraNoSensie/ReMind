@@ -1,3 +1,4 @@
+
 {
     "version": 2,
     "builds": [
@@ -14,8 +15,9 @@
             "headers": {
                 "Access-Control-Allow-Origin": "https://remind-rust.vercel.app",
                 "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type, Authorization",
-                "Access-Control-Allow-Credentials": "true"
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Expose-Headers": "Content-Type, Authorization"
             }
         }
     ]
