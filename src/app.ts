@@ -21,7 +21,7 @@ import cookieParser from 'cookie-parser';
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:3009", "https://re-mind-eosin.vercel.app"],
+  origin: ["http://localhost:3009", "https://remind-rust.vercel.app"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
