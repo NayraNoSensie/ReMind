@@ -123,7 +123,7 @@ app.post('/api/v1/signin' , async (req,res) =>{
         if(user){
             const token = jwt.sign({
                 id: user._id
-            }, process.env.JWT_SECRET! , { expiresIn: '1h' });
+            }, process.env.JWT_SECRET!, { expiresIn: '1h' });
 
             res.status(200).json({
                
@@ -310,36 +310,50 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Remind API' });
 });
 
-//function to connect he database and start the server 
-async function connect() {
-    
- const uri = process.env.MONGO_URI!;
-    await mongoose.connect(uri); // Remove the quotes
-    console.log('Connected to db');
+// Update the MongoDB connection handling
+let isConnected = false;
 
-    app.listen(8080, () => {
-        console.log('Server is running on port 8080');}
-    );
+async function connectToDatabase() {
+  if (isConnected) {
+    return;
+  }
 
+  try {
+    await mongoose.connect(process.env.MONGO_URI!);
+    isConnected = true;
+    console.log('Connected to MongoDB');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
 }
-//startiing rthe db and node server 
-connect();
 
-// Update the server start section at the bottom of the file
-const PORT = process.env.PORT ;
-
+// Modify the startServer function
 async function startServer() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI!);
-    console.log('Connected to MongoDB');
+    await connectToDatabase();
     
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
+    if (process.env.NODE_ENV !== 'production') {
+      const PORT = process.env.PORT || 3000;
+      app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+    }
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 }
 
-startServer();
+// For Vercel serverless functions
+if (process.env.NODE_ENV === 'production') {
+  connectToDatabase().catch(console.error);
+}
+
+// Start the server in development
+if (process.env.NODE_ENV !== 'production') {
+  startServer();
+}
+
+// Export the app for Vercel
+export default app;
